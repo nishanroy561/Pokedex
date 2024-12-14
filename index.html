@@ -403,17 +403,32 @@
             });
         });
 
+        // Add this function at the beginning of the script section
+        const isMobileDevice = () => {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        };
+
         async function showPokemonDetail(id) {
             try {
-                // Update the fetch URL to be relative
+                const loadingText = document.getElementById('loadingText');
+                loadingText.textContent = 'Loading Pokemon details...';
+                
                 const response = await fetch(`${getBaseUrl()}/pokemon/${id}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const pokemon = await response.json();
                 
                 detailContainer.innerHTML = `
                     <h2>${pokemon.name.toUpperCase()}</h2>
                     <div style="display: flex; justify-content: center; gap: 20px;">
-                        <img src="${pokemon.sprites.front_default}" alt="${pokemon.name}" style="width: 150px;">
-                        <img src="${pokemon.sprites.back_default}" alt="${pokemon.name} back" style="width: 150px;">
+                        <img src="${pokemon.sprites.front_default}" alt="${pokemon.name}" 
+                            style="width: 150px;" 
+                            onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png'">
+                        <img src="${pokemon.sprites.back_default}" alt="${pokemon.name} back" 
+                            style="width: 150px;"
+                            onerror="this.style.display='none'">
                     </div>
                     <div class="type-container" style="margin: 15px 0;">
                         ${pokemon.types.map(t => 
@@ -442,6 +457,10 @@
                 modal.style.display = "block";
             } catch (error) {
                 console.error('Error fetching Pokemon detail:', error);
+                detailContainer.innerHTML = `
+                    <h2>Error</h2>
+                    <p>Failed to load Pokemon details. Please try again.</p>
+                `;
             }
         }
 
@@ -451,7 +470,8 @@
             const progressFill = document.getElementById('progressFill');
             const loadingText = document.getElementById('loadingText');
             let offset = 0;
-            const limit = 50;
+            // Adjust batch size based on device type
+            const limit = isMobileDevice() ? 10 : 20; // Smaller batch size for mobile
             
             try {
                 loadingContainer.style.display = 'block';
@@ -461,33 +481,58 @@
                 const startTime = Date.now();
                 
                 while (offset < 1010) {
-                    const response = await fetch(`${getBaseUrl()}/pokemon?offset=${offset}&limit=${limit}`);
-                    const data = await response.json();
-                    
-                    data.pokemon.forEach(pokemon => {
-                        const card = document.createElement('div');
-                        card.className = 'pokemon-card';
-                        card.onclick = () => showPokemonDetail(pokemon.id);
-                        card.style.cursor = 'pointer';
-                        card.innerHTML = `
-                            <div class="pokemon-number">#${String(pokemon.id).padStart(3, '0')}</div>
-                            <img src="${pokemon.image}" alt="${pokemon.name}">
-                            <h2>${pokemon.name}</h2>
-                            <div class="type-container">
-                                ${pokemon.types.map(type => 
-                                    `<span class="type-badge ${type}">${type}</span>`
-                                ).join('')}
-                            </div>
-                        `;
-                        grid.appendChild(card);
-                    });
+                    try {
+                        loadingText.textContent = `Loading Pokémon... ${offset}/1010`;
+                        const response = await fetch(`${getBaseUrl()}/pokemon?offset=${offset}&limit=${limit}`);
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        
+                        const data = await response.json();
+                        
+                        if (!data.pokemon || !Array.isArray(data.pokemon)) {
+                            throw new Error('Invalid data format received');
+                        }
+                        
+                        // Add a longer delay between batches for mobile devices
+                        const delayTime = isMobileDevice() ? 300 : 100;
+                        await new Promise(resolve => setTimeout(resolve, delayTime));
+                        
+                        data.pokemon.forEach(pokemon => {
+                            if (!pokemon || !pokemon.id || !pokemon.name || !pokemon.image) {
+                                console.warn('Invalid pokemon data:', pokemon);
+                                return;
+                            }
+                            
+                            const card = document.createElement('div');
+                            card.className = 'pokemon-card';
+                            card.onclick = () => showPokemonDetail(pokemon.id);
+                            card.style.cursor = 'pointer';
+                            card.innerHTML = `
+                                <div class="pokemon-number">#${String(pokemon.id).padStart(3, '0')}</div>
+                                <img src="${pokemon.image}" alt="${pokemon.name}" 
+                                    onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png'">
+                                <h2>${pokemon.name}</h2>
+                                <div class="type-container">
+                                    ${pokemon.types.map(type => 
+                                        `<span class="type-badge ${type}">${type}</span>`
+                                    ).join('')}
+                                </div>
+                            `;
+                            grid.appendChild(card);
+                        });
 
-                    const progress = Math.min(((offset + limit) / 1010) * 100, 100);
-                    progressFill.style.width = `${progress}%`;
-                    loadingText.textContent = 
-                        `Loading Pokémon... ${Math.min(offset + limit, 1010)}/1010`;
-                    
-                    offset += limit;
+                        const progress = Math.min(((offset + limit) / 1010) * 100, 100);
+                        progressFill.style.width = `${progress}%`;
+                        
+                        offset += limit;
+                    } catch (batchError) {
+                        console.error('Error in batch:', batchError);
+                        await new Promise(resolve => setTimeout(resolve, 1000)); // Add longer delay on error
+                        offset += limit;
+                        continue;
+                    }
                 }
 
                 const elapsedTime = Date.now() - startTime;
