@@ -305,21 +305,29 @@
             });
         }
 
+        // Update the fetchAllPokemon function
         async function fetchAllPokemon() {
-            const pokemonGrid = document.getElementById('pokemonGrid');
             const loading = document.getElementById('loading');
             const batchSize = 50;
             const totalPokemon = 1008;
+            allPokemon = new Array(totalPokemon); // Pre-allocate array with correct size
 
             for (let i = 1; i <= totalPokemon; i += batchSize) {
                 const promises = [];
                 for (let j = i; j < Math.min(i + batchSize, totalPokemon + 1); j++) {
-                    promises.push(fetchPokemon(j));
+                    promises.push(fetchPokemon(j).then(pokemon => {
+                        if (pokemon) {
+                            allPokemon[pokemon.id - 1] = pokemon; // Store at correct index
+                        }
+                    }));
                 }
 
-                const results = await Promise.all(promises);
-                allPokemon.push(...results.filter(p => p !== null));
-                displayPokemon(allPokemon);
+                await Promise.all(promises);
+                
+                // Filter out any null values and display
+                const validPokemon = allPokemon.filter(p => p !== null && p !== undefined);
+                displayPokemon(validPokemon);
+                
                 loading.textContent = `Loading Pokémon... ${Math.min(i + batchSize - 1, totalPokemon)}/${totalPokemon}`;
                 
                 if (i === 1) {
@@ -350,14 +358,6 @@
     </script>
 </body>
 </html>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Pokédex</title>
-    <link rel="stylesheet" href="static/css/style.css">
-</head>
 <body>
     <div class="container">
         <h1>Pokédex</h1>
@@ -5932,20 +5932,6 @@
             </div>
             
             <div class="pokemon-card">
-                <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/439.png" alt="Mime-jr" loading="lazy">
-                <div class="pokemon-info">
-                    <h3>#439 Mime-jr</h3>
-                    <div class="pokemon-types">
-                        
-                        <span class="type-badge type-psychic">psychic</span>
-                        
-                        <span class="type-badge type-fairy">fairy</span>
-                        
-                    </div>
-                </div>
-            </div>
-            
-            <div class="pokemon-card">
                 <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/440.png" alt="Happiny" loading="lazy">
                 <div class="pokemon-info">
                     <h3>#440 Happiny</h3>
@@ -9912,18 +9898,6 @@
             </div>
             
             <div class="pokemon-card">
-                <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/749.png" alt="Mudbray" loading="lazy">
-                <div class="pokemon-info">
-                    <h3>#749 Mudbray</h3>
-                    <div class="pokemon-types">
-                        
-                        <span class="type-badge type-ground">ground</span>
-                        
-                    </div>
-                </div>
-            </div>
-            
-            <div class="pokemon-card">
                 <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/750.png" alt="Mudsdale" loading="lazy">
                 <div class="pokemon-info">
                     <h3>#750 Mudsdale</h3>
@@ -11504,18 +11478,6 @@
                         <span class="type-badge type-ice">ice</span>
                         
                         <span class="type-badge type-bug">bug</span>
-                        
-                    </div>
-                </div>
-            </div>
-            
-            <div class="pokemon-card">
-                <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/874.png" alt="Stonjourner" loading="lazy">
-                <div class="pokemon-info">
-                    <h3>#874 Stonjourner</h3>
-                    <div class="pokemon-types">
-                        
-                        <span class="type-badge type-rock">rock</span>
                         
                     </div>
                 </div>
