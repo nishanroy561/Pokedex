@@ -305,36 +305,36 @@
             });
         }
 
-        // Update the fetchAllPokemon function
         async function fetchAllPokemon() {
             const loading = document.getElementById('loading');
             const batchSize = 50;
             const totalPokemon = 1008;
-            allPokemon = new Array(totalPokemon); // Pre-allocate array with correct size
+            allPokemon = [];  // Start with empty array
 
             for (let i = 1; i <= totalPokemon; i += batchSize) {
+                const startId = i;
+                const endId = Math.min(i + batchSize - 1, totalPokemon);
+                loading.textContent = `Loading Pokémon ${startId} to ${endId}...`;
+
                 const promises = [];
-                for (let j = i; j < Math.min(i + batchSize, totalPokemon + 1); j++) {
-                    promises.push(fetchPokemon(j).then(pokemon => {
-                        if (pokemon) {
-                            allPokemon[pokemon.id - 1] = pokemon; // Store at correct index
-                        }
-                    }));
+                for (let j = startId; j <= endId; j++) {
+                    promises.push(fetchPokemon(j));
                 }
 
-                await Promise.all(promises);
+                const batchResults = await Promise.all(promises);
+                const validPokemon = batchResults.filter(p => p !== null);
+                allPokemon.push(...validPokemon);
                 
-                // Filter out any null values and display
-                const validPokemon = allPokemon.filter(p => p !== null && p !== undefined);
-                displayPokemon(validPokemon);
-                
-                loading.textContent = `Loading Pokémon... ${Math.min(i + batchSize - 1, totalPokemon)}/${totalPokemon}`;
-                
-                if (i === 1) {
+                // Sort by ID to ensure correct order
+                allPokemon.sort((a, b) => a.id - b.id);
+                displayPokemon(allPokemon);
+
+                if (startId === 1) {
                     populateTypeFilter();
                 }
 
-                if (i + batchSize <= totalPokemon) {
+                // Add delay between batches to avoid rate limiting
+                if (endId < totalPokemon) {
                     await new Promise(resolve => setTimeout(resolve, 1000));
                 }
             }
@@ -1946,18 +1946,6 @@
                     <div class="pokemon-types">
                         
                         <span class="type-badge type-bug">bug</span>
-                        
-                    </div>
-                </div>
-            </div>
-            
-            <div class="pokemon-card">
-                <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/128.png" alt="Tauros" loading="lazy">
-                <div class="pokemon-info">
-                    <h3>#128 Tauros</h3>
-                    <div class="pokemon-types">
-                        
-                        <span class="type-badge type-normal">normal</span>
                         
                     </div>
                 </div>
@@ -5132,18 +5120,6 @@
             </div>
             
             <div class="pokemon-card">
-                <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/377.png" alt="Regirock" loading="lazy">
-                <div class="pokemon-info">
-                    <h3>#377 Regirock</h3>
-                    <div class="pokemon-types">
-                        
-                        <span class="type-badge type-rock">rock</span>
-                        
-                    </div>
-                </div>
-            </div>
-            
-            <div class="pokemon-card">
                 <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/378.png" alt="Regice" loading="lazy">
                 <div class="pokemon-info">
                     <h3>#378 Regice</h3>
@@ -5926,18 +5902,6 @@
                     <div class="pokemon-types">
                         
                         <span class="type-badge type-rock">rock</span>
-                        
-                    </div>
-                </div>
-            </div>
-            
-            <div class="pokemon-card">
-                <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/440.png" alt="Happiny" loading="lazy">
-                <div class="pokemon-info">
-                    <h3>#440 Happiny</h3>
-                    <div class="pokemon-types">
-                        
-                        <span class="type-badge type-normal">normal</span>
                         
                     </div>
                 </div>
