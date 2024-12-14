@@ -83,6 +83,60 @@
         .dark { background-color: #705848; }
         .steel { background-color: #B8B8D0; }
         .fairy { background-color: #EE99AC; }
+
+        /* Add styles for modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: relative;
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 10px;
+        }
+
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 10px;
+            font-size: 28px;
+            cursor: pointer;
+        }
+
+        .stats-container {
+            margin: 20px 0;
+        }
+
+        .stat-bar {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .stat-name {
+            width: 100px;
+            text-transform: capitalize;
+        }
+
+        .stat-value {
+            background: #4CAF50;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            min-width: 30px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -91,7 +145,71 @@
         <div class="pokemon-grid" id="pokemonGrid"></div>
     </div>
 
+    <!-- Modal for Pokemon details -->
+    <div id="pokemonModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="pokemonDetail"></div>
+        </div>
+    </div>
+
     <script>
+        const modal = document.getElementById('pokemonModal');
+        const detailContainer = document.getElementById('pokemonDetail');
+
+        // Close modal when clicking the X
+        document.querySelector('.close').onclick = function() {
+            modal.style.display = "none";
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+
+        async function showPokemonDetail(id) {
+            try {
+                const response = await fetch(`http://localhost:8000/pokemon/${id}`);
+                const pokemon = await response.json();
+                
+                detailContainer.innerHTML = `
+                    <h2>${pokemon.name.toUpperCase()}</h2>
+                    <div style="display: flex; justify-content: center; gap: 20px;">
+                        <img src="${pokemon.sprites.front_default}" alt="${pokemon.name}" style="width: 150px;">
+                        <img src="${pokemon.sprites.back_default}" alt="${pokemon.name} back" style="width: 150px;">
+                    </div>
+                    <div class="type-container" style="margin: 15px 0;">
+                        ${pokemon.types.map(t => 
+                            `<span class="type-badge ${t.type.name}">${t.type.name}</span>`
+                        ).join('')}
+                    </div>
+                    <div class="stats-container">
+                        <h3>Base Stats</h3>
+                        ${pokemon.stats.map(stat => `
+                            <div class="stat-bar">
+                                <span class="stat-name">${stat.stat.name}</span>
+                                <span class="stat-value">${stat.base_stat}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div>
+                        <h3>Abilities</h3>
+                        <p>${pokemon.abilities.map(a => a.ability.name).join(', ')}</p>
+                    </div>
+                    <div>
+                        <p>Height: ${pokemon.height/10}m</p>
+                        <p>Weight: ${pokemon.weight/10}kg</p>
+                    </div>
+                `;
+                
+                modal.style.display = "block";
+            } catch (error) {
+                console.error('Error fetching Pokemon detail:', error);
+            }
+        }
+
         async function fetchPokemon() {
             try {
                 const response = await fetch('http://localhost:8000/pokemon');
@@ -101,6 +219,8 @@
                 pokemon_list.forEach(pokemon => {
                     const card = document.createElement('div');
                     card.className = 'pokemon-card';
+                    card.onclick = () => showPokemonDetail(pokemon.id);
+                    card.style.cursor = 'pointer';
                     card.innerHTML = `
                         <div class="pokemon-number">#${String(pokemon.id).padStart(3, '0')}</div>
                         <img src="${pokemon.image}" alt="${pokemon.name}">
