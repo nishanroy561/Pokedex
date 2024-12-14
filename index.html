@@ -360,12 +360,13 @@
         // Add this at the beginning of the script section
         // Get the base URL dynamically
         const getBaseUrl = () => {
-            // For development
+            // Check if we're running locally
             if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
                 return `http://${window.location.hostname}:8000`;
             }
-            // For production
-            return window.location.origin;
+            
+            // For GitHub Pages or other static hosting
+            return 'https://pokeapi.co/api/v2';
         };
 
         const modal = document.getElementById('pokemonModal');
@@ -415,14 +416,10 @@
 
         async function showPokemonDetail(id) {
             try {
-                const loadingText = document.getElementById('loadingText');
-                loadingText.textContent = 'Loading Pokemon details...';
-                
                 const response = await fetch(`${getBaseUrl()}/pokemon/${id}`);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                
                 const pokemon = await response.json();
                 
                 detailContainer.innerHTML = `
@@ -485,30 +482,20 @@
                 
                 while (offset < 1010) {
                     try {
-                        const apiUrl = `${getBaseUrl()}/pokemon?offset=${offset}&limit=${limit}`;
-                        console.log('Fetching from:', apiUrl); // Debug log
-                        
-                        loadingText.textContent = `Loading Pokémon... ${offset}/1010`;
-                        const response = await fetch(apiUrl);
-                        
-                        if (!response.ok) {
-                            console.error('Response not OK:', response.status, response.statusText); // Debug log
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        
-                        const data = await response.json();
-                        console.log('Received data:', data); // Debug log
-                        
-                        if (!data.pokemon || !Array.isArray(data.pokemon)) {
-                            console.error('Invalid data format:', data); // Debug log
-                            throw new Error('Invalid data format received');
-                        }
-                        
-                        data.pokemon.forEach(pokemon => {
-                            if (!pokemon || !pokemon.id || !pokemon.name || !pokemon.image) {
-                                console.warn('Invalid pokemon data:', pokemon);
-                                return;
+                        // For website deployment, directly fetch from PokeAPI
+                        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                            const response = await fetch(`${getBaseUrl()}/pokemon/${offset + 1}`);
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
                             }
+                            const data = await response.json();
+                            
+                            const pokemon = {
+                                id: data.id,
+                                name: data.name.title(),
+                                image: data.sprites.front_default,
+                                types: data.types.map(t => t.type.name)
+                            };
                             
                             const card = document.createElement('div');
                             card.className = 'pokemon-card';
@@ -526,25 +513,61 @@
                                 </div>
                             `;
                             grid.appendChild(card);
-                        });
+                            offset++;
+                        } else {
+                            // For local development, use the existing batch approach
+                            const apiUrl = `${getBaseUrl()}/pokemon?offset=${offset}&limit=${limit}`;
+                            console.log('Fetching from:', apiUrl);
+                            
+                            const response = await fetch(apiUrl);
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            
+                            const data = await response.json();
+                            data.pokemon.forEach(pokemon => {
+                                if (!pokemon || !pokemon.id || !pokemon.name || !pokemon.image) {
+                                    console.warn('Invalid pokemon data:', pokemon);
+                                    return;
+                                }
+                                
+                                const card = document.createElement('div');
+                                card.className = 'pokemon-card';
+                                card.onclick = () => showPokemonDetail(pokemon.id);
+                                card.style.cursor = 'pointer';
+                                card.innerHTML = `
+                                    <div class="pokemon-number">#${String(pokemon.id).padStart(3, '0')}</div>
+                                    <img src="${pokemon.image}" alt="${pokemon.name}" 
+                                        onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png'">
+                                    <h2>${pokemon.name}</h2>
+                                    <div class="type-container">
+                                        ${pokemon.types.map(type => 
+                                            `<span class="type-badge ${type}">${type}</span>`
+                                        ).join('')}
+                                    </div>
+                                `;
+                                grid.appendChild(card);
+                            });
+                            offset += limit;
+                        }
 
-                        const progress = Math.min(((offset + limit) / 1010) * 100, 100);
+                        const progress = Math.min((offset / 1010) * 100, 100);
                         progressFill.style.width = `${progress}%`;
+                        loadingText.textContent = `Loading Pokémon... ${offset}/1010`;
                         
-                        // Add a longer delay between batches for mobile devices
+                        // Add delay between requests
                         const delayTime = isMobileDevice() ? 300 : 100;
                         await new Promise(resolve => setTimeout(resolve, delayTime));
                         
-                        offset += limit;
                     } catch (batchError) {
                         console.error('Error in batch:', batchError);
                         await new Promise(resolve => setTimeout(resolve, 1000));
-                        offset += limit;
+                        offset += 1;
                         continue;
                     }
                 }
 
-                console.log('Finished loading all Pokemon'); // Debug log
+                console.log('Finished loading all Pokemon');
                 grid.style.opacity = '1';
             } catch (error) {
                 console.error('Error fetching Pokemon:', error);
