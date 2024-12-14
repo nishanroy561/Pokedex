@@ -360,6 +360,11 @@
         // Add this at the beginning of the script section
         // Get the base URL dynamically
         const getBaseUrl = () => {
+            // For development
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                return `http://${window.location.hostname}:8000`;
+            }
+            // For production
             return window.location.origin;
         };
 
@@ -470,34 +475,34 @@
             const progressFill = document.getElementById('progressFill');
             const loadingText = document.getElementById('loadingText');
             let offset = 0;
-            // Adjust batch size based on device type
-            const limit = isMobileDevice() ? 10 : 20; // Smaller batch size for mobile
+            const limit = isMobileDevice() ? 30 : 50;
             
             try {
+                console.log('Starting to fetch Pokemon...'); // Debug log
                 loadingContainer.style.display = 'block';
                 grid.style.opacity = '0';
                 grid.style.display = 'grid';
                 
-                const startTime = Date.now();
-                
                 while (offset < 1010) {
                     try {
+                        const apiUrl = `${getBaseUrl()}/pokemon?offset=${offset}&limit=${limit}`;
+                        console.log('Fetching from:', apiUrl); // Debug log
+                        
                         loadingText.textContent = `Loading Pokémon... ${offset}/1010`;
-                        const response = await fetch(`${getBaseUrl()}/pokemon?offset=${offset}&limit=${limit}`);
+                        const response = await fetch(apiUrl);
                         
                         if (!response.ok) {
+                            console.error('Response not OK:', response.status, response.statusText); // Debug log
                             throw new Error(`HTTP error! status: ${response.status}`);
                         }
                         
                         const data = await response.json();
+                        console.log('Received data:', data); // Debug log
                         
                         if (!data.pokemon || !Array.isArray(data.pokemon)) {
+                            console.error('Invalid data format:', data); // Debug log
                             throw new Error('Invalid data format received');
                         }
-                        
-                        // Add a longer delay between batches for mobile devices
-                        const delayTime = isMobileDevice() ? 300 : 100;
-                        await new Promise(resolve => setTimeout(resolve, delayTime));
                         
                         data.pokemon.forEach(pokemon => {
                             if (!pokemon || !pokemon.id || !pokemon.name || !pokemon.image) {
@@ -526,20 +531,20 @@
                         const progress = Math.min(((offset + limit) / 1010) * 100, 100);
                         progressFill.style.width = `${progress}%`;
                         
+                        // Add a longer delay between batches for mobile devices
+                        const delayTime = isMobileDevice() ? 300 : 100;
+                        await new Promise(resolve => setTimeout(resolve, delayTime));
+                        
                         offset += limit;
                     } catch (batchError) {
                         console.error('Error in batch:', batchError);
-                        await new Promise(resolve => setTimeout(resolve, 1000)); // Add longer delay on error
+                        await new Promise(resolve => setTimeout(resolve, 1000));
                         offset += limit;
                         continue;
                     }
                 }
 
-                const elapsedTime = Date.now() - startTime;
-                if (elapsedTime < 500) {
-                    await new Promise(resolve => setTimeout(resolve, 500 - elapsedTime));
-                }
-
+                console.log('Finished loading all Pokemon'); // Debug log
                 grid.style.opacity = '1';
             } catch (error) {
                 console.error('Error fetching Pokemon:', error);
