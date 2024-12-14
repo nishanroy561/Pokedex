@@ -88,20 +88,38 @@
 <body>
     <div class="container">
         <h1>Pokédex</h1>
-        <div class="pokemon-grid">
-            {% for pokemon in pokemon_list %}
-            <div class="pokemon-card">
-                <div class="pokemon-number">#{{ "%03d" | format(pokemon.id) }}</div>
-                <img src="{{ pokemon.image }}" alt="{{ pokemon.name }}">
-                <h2>{{ pokemon.name }}</h2>
-                <div class="type-container">
-                    {% for type in pokemon.types %}
-                    <span class="type-badge {{ type }}">{{ type }}</span>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endfor %}
-        </div>
+        <div class="pokemon-grid" id="pokemonGrid"></div>
     </div>
+
+    <script>
+        async function fetchPokemon() {
+            try {
+                const response = await fetch('http://localhost:8000/pokemon');
+                const pokemon_list = await response.json();
+                
+                const grid = document.getElementById('pokemonGrid');
+                pokemon_list.forEach(pokemon => {
+                    const card = document.createElement('div');
+                    card.className = 'pokemon-card';
+                    card.innerHTML = `
+                        <div class="pokemon-number">#${String(pokemon.id).padStart(3, '0')}</div>
+                        <img src="${pokemon.image}" alt="${pokemon.name}">
+                        <h2>${pokemon.name}</h2>
+                        <div class="type-container">
+                            ${pokemon.types.map(type => 
+                                `<span class="type-badge ${type}">${type}</span>`
+                            ).join('')}
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Error fetching Pokemon:', error);
+            }
+        }
+
+        // Load Pokemon when page loads
+        fetchPokemon();
+    </script>
 </body>
 </html> 
