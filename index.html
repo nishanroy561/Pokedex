@@ -2,17 +2,19 @@
 <html>
 <head>
     <title>Pokédex</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
             font-family: Arial, sans-serif;
             background-color: #f5f5f5;
             margin: 0;
-            padding: 20px;
+            padding: 10px;
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
+            padding: 10px;
         }
 
         h1 {
@@ -22,15 +24,15 @@
 
         .pokemon-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 20px;
-            padding: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            padding: 10px;
         }
 
         .pokemon-card {
             background: white;
             border-radius: 10px;
-            padding: 15px;
+            padding: 10px;
             text-align: center;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
@@ -41,13 +43,13 @@
         }
 
         .pokemon-card img {
-            width: 120px;
-            height: 120px;
+            width: 100px;
+            height: 100px;
         }
 
         .pokemon-card h2 {
             margin: 10px 0;
-            font-size: 1.2em;
+            font-size: 1em;
         }
 
         .type-container {
@@ -57,9 +59,9 @@
         }
 
         .type-badge {
-            padding: 5px 10px;
+            padding: 3px 8px;
             border-radius: 15px;
-            font-size: 0.8em;
+            font-size: 0.7em;
             color: white;
             text-transform: capitalize;
         }
@@ -241,6 +243,39 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* Mobile-specific styles */
+        @media (max-width: 768px) {
+            .search-input {
+                width: 80%;
+                max-width: 300px;
+            }
+
+            .modal-content {
+                margin: 5% auto;
+                width: 90%;
+                padding: 15px;
+            }
+
+            .pokemon-card h2 {
+                font-size: 1em;
+            }
+
+            .type-badge {
+                padding: 3px 8px;
+                font-size: 0.7em;
+            }
+
+            .loading-container {
+                margin: 10px 0;
+                padding: 15px;
+            }
+
+            .loading-spinner {
+                width: 40px;
+                height: 40px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -278,6 +313,12 @@
     <div id="scrollTop" class="scroll-top">↑</div>
 
     <script>
+        // Add this at the beginning of the script section
+        // Get the base URL dynamically
+        const getBaseUrl = () => {
+            return window.location.origin;
+        };
+
         const modal = document.getElementById('pokemonModal');
         const detailContainer = document.getElementById('pokemonDetail');
         const searchInput = document.getElementById('searchInput');
@@ -320,7 +361,8 @@
 
         async function showPokemonDetail(id) {
             try {
-                const response = await fetch(`http://localhost:8000/pokemon/${id}`);
+                // Update the fetch URL to be relative
+                const response = await fetch(`${getBaseUrl()}/pokemon/${id}`);
                 const pokemon = await response.json();
                 
                 detailContainer.innerHTML = `
@@ -372,7 +414,8 @@
                 grid.style.display = 'grid';
                 
                 while (offset < 1010) {
-                    const response = await fetch(`http://localhost:8000/pokemon?offset=${offset}&limit=${limit}`);
+                    // Update the fetch URL to be relative
+                    const response = await fetch(`${getBaseUrl()}/pokemon?offset=${offset}&limit=${limit}`);
                     const data = await response.json();
                     
                     data.pokemon.forEach(pokemon => {
