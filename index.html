@@ -360,12 +360,11 @@
         // Add this at the beginning of the script section
         // Get the base URL dynamically
         const getBaseUrl = () => {
-            // Check if we're running locally
+            // For local development
             if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
                 return `http://${window.location.hostname}:8000`;
             }
-            
-            // For GitHub Pages or other static hosting
+            // For deployed website
             return 'https://pokeapi.co/api/v2';
         };
 
